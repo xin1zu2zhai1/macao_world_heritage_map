@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マカオ世界遺産マップ｜マカオ歴史市街地区 全30スポット</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Zen+Old+Mincho:wght@700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --paper:#F6F4EE;
+  --card:#FFFFFF;
+  --ink:#22303C;
+  --ink-sub:#5A6B77;
+  --line:#E3DED2;
+  --azulejo:#1F5E8E;
+  --azulejo-deep:#143F63;
+  --temple:#B5432F;
+  --church:#1F5E8E;
+  --building:#C08A2D;
+  --square:#4E7C57;
+  --fort:#6B6152;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Noto Sans JP',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1280px;margin:0 auto;padding:0 24px}
+
+/* ---------- calçada wave (signature) ---------- */
+.calcada{display:block;width:100%;height:26px;background:#EFE9DC}
+.calcada svg{display:block;width:100%;height:26px}
+
+/* ---------- hero ---------- */
+header.hero{padding:56px 0 0}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:12px;letter-spacing:.18em;font-weight:700;color:var(--azulejo);
+  text-transform:uppercase;margin-bottom:18px;
+}
+.eyebrow::before{content:"";width:34px;height:2px;background:var(--azulejo)}
+h1{
+  font-family:'Zen Old Mincho',serif;font-weight:900;
+  font-size:clamp(34px,5.2vw,58px);line-height:1.22;letter-spacing:.02em;
+}
+h1 .en{
+  display:block;font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;
+  font-size:clamp(18px,2.4vw,26px);color:var(--azulejo);letter-spacing:.04em;margin-top:10px;
+}
+.hero-lead{max-width:760px;margin-top:22px;color:var(--ink-sub);font-size:15px}
+.hero-lead b{color:var(--ink);font-weight:700}
+.hero-stats{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 34px}
+.stat{
+  border:1px solid var(--line);background:var(--card);
+  padding:10px 18px;font-size:13px;color:var(--ink-sub);line-height:1.4;
+}
+.stat b{display:block;font-size:17px;color:var(--ink);font-family:'Zen Old Mincho',serif;font-weight:700}
+.stat b .l{font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--azulejo)}
+
+/* ---------- layout ---------- */
+.main{display:grid;grid-template-columns:minmax(0,7fr) minmax(340px,5fr);gap:0;align-items:start}
+.map-col{position:sticky;top:0;height:calc(100vh - 0px);min-height:520px;border-right:1px solid var(--line)}
+#map{width:100%;height:100%;background:#E8ECE9;z-index:1}
+.map-fallback{
+  height:100%;display:none;place-items:center;text-align:center;
+  padding:32px;color:var(--ink-sub);font-size:14px;background:#E8ECE9;
+}
+.list-col{padding:28px 24px 40px}
+
+/* filter chips */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;position:sticky;top:0;z-index:30;
+  background:var(--paper);padding:14px 0 12px;border-bottom:1px solid var(--line)}
+.chip-btn{
+  appearance:none;border:1px solid var(--line);background:var(--card);cursor:pointer;
+  font-family:'Noto Sans JP',sans-serif;font-size:12.5px;font-weight:500;color:var(--ink-sub);
+  padding:6px 14px;border-radius:999px;display:inline-flex;align-items:center;gap:7px;
+  transition:all .15s ease;
+}
+.chip-btn .dot{width:9px;height:9px;border-radius:50%;background:var(--c,#999)}
+.chip-btn:hover{border-color:var(--azulejo);color:var(--ink)}
+.chip-btn.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip-btn .cnt{font-family:'Cormorant Garamond',serif;font-size:13px;opacity:.7}
+
+.list-note{font-size:12px;color:var(--ink-sub);margin:14px 2px 16px}
+
+/* list cards */
+.card{
+  display:flex;gap:14px;background:var(--card);border:1px solid var(--line);
+  border-left:4px solid var(--c,#ccc);padding:16px 18px 16px 14px;margin-bottom:12px;
+  cursor:pointer;transition:box-shadow .15s ease,border-color .15s ease,transform .15s ease;
+}
+.card:hover{box-shadow:0 6px 18px rgba(34,48,60,.10);transform:translateY(-1px)}
+.card.active{border-color:var(--azulejo);border-left-color:var(--c,#ccc);box-shadow:0 6px 18px rgba(31,94,142,.16);background:#FCFBF6}
+.card-num{
+  flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:var(--c,#888);
+  color:#fff;display:grid;place-items:center;margin-top:3px;
+  font-family:'Cormorant Garamond',serif;font-weight:600;font-size:17px;
+}
+.card-num.hollow{background:#fff;color:var(--c,#888);box-shadow:inset 0 0 0 2.5px var(--c,#888)}
+.card-body{min-width:0}
+.card h3{
+  font-family:'Zen Old Mincho',serif;font-weight:700;font-size:17px;line-height:1.45;
+}
+.card h3 .pt{
+  display:block;font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;
+  font-size:14px;color:var(--azulejo);letter-spacing:.02em;margin-top:1px;
+}
+.card .meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:7px 0 6px}
+.tag{
+  font-size:11px;font-weight:700;color:#fff;background:var(--c,#888);
+  padding:2px 9px;border-radius:3px;letter-spacing:.06em;
+}
+.zh{font-size:12px;color:var(--ink-sub)}
+.closed{font-size:11px;font-weight:700;color:var(--temple);border:1px solid var(--temple);padding:1px 7px;border-radius:3px}
+.card p{font-size:13px;color:var(--ink-sub)}
+.card .more{
+  display:inline-block;margin-top:8px;font-size:12px;font-weight:500;color:var(--azulejo);
+  text-decoration:none;border-bottom:1px solid transparent;
+}
+.card .more:hover{border-bottom-color:var(--azulejo)}
+.hidden{display:none!important}
+
+/* footer */
+footer{background:#20313F;color:#C8D2DA;margin-top:0}
+footer .wrap{padding:34px 24px 42px}
+footer .calcada-row{margin:0 -24px 26px}
+footer h4{font-family:'Zen Old Mincho',serif;color:#fff;font-size:15px;font-weight:700;margin-bottom:10px}
+footer p, footer li{font-size:12px;line-height:1.9;color:#AAB8C2}
+footer a{color:#9CC4E4;text-decoration:none}
+footer a:hover{text-decoration:underline}
+footer ul{list-style:none}
+
+/* ---------- leaflet overrides ---------- */
+.leaflet-popup-content-wrapper{border-radius:8px;box-shadow:0 8px 28px rgba(20,63,99,.22)}
+.leaflet-popup-content{margin:14px 16px;width:auto!important;font-family:'Noto Sans JP',sans-serif}
+.pp{min-width:210px;max-width:260px}
+.pp-head{display:flex;align-items:flex-start;gap:10px}
+.pp-num{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--c,#888);color:#fff;
+  display:grid;place-items:center;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:15px;margin-top:2px}
+.pp-num.hollow{background:#fff;color:var(--c,#888);box-shadow:inset 0 0 0 2.5px var(--c,#888)}
+/* numbered map badges (マーキング) */
+.mk-badge{
+  display:grid;place-items:center;width:30px;height:30px;border-radius:50%;
+  background:var(--c,#888);color:#fff;
+  font-family:'Cormorant Garamond',serif;font-weight:700;font-size:16px;line-height:1;
+  border:2px solid #fff;box-shadow:0 2px 7px rgba(20,40,60,.4);
+  cursor:pointer;transition:transform .12s ease;
+}
+.mk-badge:hover{transform:scale(1.12)}
+.mk-badge.hollow{background:#fff;color:var(--c,#888);box-shadow:inset 0 0 0 2.5px var(--c,#888),0 2px 7px rgba(20,40,60,.35)}
+.mk-badge.active{transform:scale(1.22);outline:3px solid rgba(31,94,142,.4);outline-offset:1px}
+.leaflet-tooltip{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:var(--ink);
+  border:1px solid var(--line);box-shadow:0 4px 12px rgba(34,48,60,.18)}
+.pp h5{font-family:'Zen Old Mincho',serif;font-size:15px;line-height:1.4}
+.pp .pt{display:block;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12.5px;color:var(--azulejo);font-weight:500}
+.pp .cat{display:inline-block;font-size:10.5px;font-weight:700;color:#fff;background:var(--c,#888);padding:1px 8px;border-radius:3px;margin:8px 0 6px;letter-spacing:.05em}
+.pp p{font-size:11.5px;color:var(--ink-sub);line-height:1.65}
+.pp a{display:inline-block;margin-top:8px;font-size:11.5px;color:var(--azulejo);text-decoration:none;font-weight:500}
+.pp a:hover{text-decoration:underline}
+.leaflet-control-attribution{font-size:10px!important;background:rgba(255,255,255,.82)!important}
+.leaflet-bar a{color:var(--ink)}
+.legend{
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:10px 12px;font-size:11.5px;color:var(--ink-sub);box-shadow:0 4px 14px rgba(34,48,60,.12);
+}
+.legend .row{display:flex;align-items:center;gap:7px;margin:3px 0}
+.legend .d{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.legend .d.hollow{background:#fff;box-shadow:inset 0 0 0 2.5px var(--c)}
+.legend .note{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:10.5px}
+
+/* focus visibility */
+a:focus-visible,button:focus-visible,.card:focus-visible{outline:2.5px solid var(--azulejo);outline-offset:2px}
+
+/* ---------- responsive ---------- */
+@media (max-width:960px){
+  .main{grid-template-columns:1fr}
+  .map-col{position:sticky;top:0;height:46vh;min-height:330px;border-right:none;z-index:50;
+    box-shadow:0 6px 18px rgba(34,48,60,.16)}
+  .list-col{padding:20px 16px 36px}
+  header.hero{padding:38px 0 0}
+  .card{padding:14px 14px 14px 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">UNESCO World Heritage · Ref. 1110 · 2005</span>
+    <h1>マカオ世界遺産マップ
+      <span class="en">The Historic Centre of Macao — マカオ歴史市街地区</span>
+    </h1>
+    <p class="hero-lead">
+      マカオ半島の中心に点在する歴史的建造物と広場は、集合遺産<b>「マカオ歴史市街地区」</b>として
+      2005年に世界遺産（文化遺産）に登録されました。中華とポルトガルの文化が400年以上にわたり
+      共存してきた街並みを、<b>22の建造物と8つの広場、全30スポット</b>の地図でたどります。
+    </p>
+    <div class="hero-stats">
+      <div class="stat"><b>2005<span class="l">年登録</span></b>第29回世界遺産委員会</div>
+      <div class="stat"><b>(ii)(iii)(iv)(vi)</b>文化遺産 登録基準</div>
+      <div class="stat"><b>30<span class="l">スポット</span></b>建造物22＋広場8</div>
+      <div class="stat"><b>2<span class="l">つの地区</span></b>バラ丘〜モンテ丘間＋ギア丘</div>
+    </div>
+  </div>
+  <div class="calcada" aria-hidden="true">
+    <svg viewBox="0 0 1200 26" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="26" fill="#2A2A28"/>
+      <path d="M0 13 Q 37.5 0 75 13 T 150 13 T 225 13 T 300 13 T 375 13 T 450 13 T 525 13 T 600 13 T 675 13 T 750 13 T 825 13 T 900 13 T 975 13 T 1050 13 T 1125 13 T 1200 13 V 26 H 0 Z" fill="#EFE9DC"/>
+      <path d="M0 22 Q 37.5 13 75 22 T 150 22 T 225 22 T 300 22 T 375 22 T 450 22 T 525 22 T 600 22 T 675 22 T 750 22 T 825 22 T 900 22 T 975 22 T 1050 22 T 1125 22 T 1200 22 V 26 H 0 Z" fill="#3B3B38"/>
+    </svg>
+  </div>
+</header>
+
+<div class="main">
+  <div class="map-col">
+    <div id="map" role="application" aria-label="マカオ歴史市街地区の地図"></div>
+    <div class="map-fallback" id="mapFallback">
+      <div>
+        <p><b>地図を読み込めませんでした</b>（ネットワーク制限の可能性があります）。<br>
+        右の一覧から各スポットの情報をご覧ください。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="list-col">
+    <div class="filters" id="filters" role="group" aria-label="カテゴリで絞り込み"></div>
+    <p class="list-note">番号はマカオ政府観光局の世界遺産ページの並び（距離順）に準拠しています。カードをクリックすると地図が移動します。</p>
+    <div id="list"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="calcada-row calcada" aria-hidden="true" style="height:22px">
+      <svg viewBox="0 0 1200 26" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="height:22px">
+        <rect width="1200" height="26" fill="#EFE9DC"/>
+        <path d="M0 13 Q 37.5 0 75 13 T 150 13 T 225 13 T 300 13 T 375 13 T 450 13 T 525 13 T 600 13 T 675 13 T 750 13 T 825 13 T 900 13 T 975 13 T 1050 13 T 1125 13 T 1200 13 V 26 H 0 Z" fill="#2A2A28"/>
+        <path d="M0 22 Q 37.5 13 75 22 T 150 22 T 225 22 T 300 22 T 375 22 T 450 22 T 525 22 T 600 22 T 675 22 T 750 22 T 825 22 T 900 22 T 975 22 T 1050 22 T 1125 22 T 1200 22 V 26 H 0 Z" fill="#EFE9DC"/>
+      </svg>
+    </div>
+    <h4>このページについて</h4>
+    <ul>
+      <li>一覧と解説は <a href="https://www.macaotourism.gov.mo/ja/sightseeing/macao-world-heritage" target="_blank" rel="noopener">マカオ政府観光局「マカオの世界遺産」</a>（2026年10月閲覧）を参考に作成。ドン・ペドロ5世劇場と聖ドミニコ教会は観光局サイトで「一時休業」の表記があります。</li>
+      <li>登録情報は <a href="https://whc.unesco.org/en/list/1110/" target="_blank" rel="noopener">UNESCO世界遺産センター Ref.1110</a> に基づく（2005年登録・登録基準 (ii)(iii)(iv)(vi)・核心地域約16.2ha＋緩衝地域約106.8ha）。</li>
+      <li>座標は <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> のデータを照合して補正した参考値です。地図タイル: Tiles © Esri (Source: Esri, HERE, Garmin, USGS)、© OpenStreetMap contributors。訪問前に最新の開館状況をご確認ください。</li>
+    </ul>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const CATS = {
+  temple:   {label:"寺廟",      color:"#B5432F"},
+  church:   {label:"教会・聖堂", color:"#1F5E8E"},
+  building: {label:"建築物",    color:"#C08A2D"},
+  square:   {label:"広場",      color:"#4E7C57"},
+  fort:     {label:"要塞・史跡", color:"#6B6152"}
+};
+
+const BASE = "https://www.macaotourism.gov.mo/ja/sightseeing/macao-world-heritage/";
+
+const SITES = [
+ {n:1, cat:"temple", jp:"媽閣廟", pt:"Templo de A-Má", zh:"媽閣廟", lat:22.18610, lng:113.53120,
+  desc:"マカオの街が形成される以前から存在する最古の寺院。正門・中国式鳥居と4つのお堂で構成され、儒教・道教・仏教の信仰を一つに祀る中国文化の典型。マカオの地名の由来ともいわれる。",
+  url:BASE+"a-ma-temple"},
+ {n:2, cat:"building", jp:"港務局", pt:"Quartel dos Mouros", zh:"港務局大樓", lat:22.18737, lng:113.53263,
+  desc:"1874年、インド・ゴアから派遣された連隊の宿泊施設として建設。ムガール建築の要素を反映した新古典様式で、現在は海事及水務局の庁舎として使用されている。",
+  url:BASE+"moorish-barracks"},
+ {n:3, cat:"square", jp:"リラウ広場", pt:"Largo do Lilau", zh:"亞婆井前地", lat:22.18848, lng:113.53510,
+  desc:"かつてリラウの地下水はマカオの天然水の供給源だった。「リラウの水を飲んだ者はマカオを決して忘れない」の言い伝えが残る、ポルトガル人が最初に住み始めた地域の一つ。",
+  url:BASE+"lilau-square"},
+ {n:4, cat:"building", jp:"鄭家屋敷", pt:"Casa do Mandarim", zh:"鄭家大屋", lat:22.18852, lng:113.53439,
+  desc:"1869年以前に建てられた中国の文豪・鄭観應の伝統的中国式住居。灰色レンガのアーチ装飾や、インド式の真珠貝窓枠に中国式格子窓を組み合わせるなど中西折衷の様式が混在する。",
+  url:BASE+"mandarins-house"},
+ {n:5, cat:"church", jp:"聖ローレンス教会", pt:"Igreja de São Lourenço", zh:"聖老楞佐教堂", lat:22.19067, lng:113.53680,
+  desc:"16世紀中頃にイエズス会が建てた、マカオ最古の教会の一つ。現在の姿は1846年の再建。ポルトガル人船乗りの帰還を祈ったことから「風順堂」の別名をもつ。",
+  url:BASE+"st-lawrences-church"},
+ {n:6, cat:"church", jp:"聖ヨセフ修道院及び聖堂", pt:"Seminário e Igreja de São José", zh:"聖若瑟修院大樓及聖堂", lat:22.19177, lng:113.53759,
+  desc:"1728年に聖ポール大学とともに創設され、中国・日本への宣教の主要拠点となった修道院。1800年にはポルトガル女王から「伝道信徒団の館」の王家の称号が贈られた。隣接する1758年築の聖堂も見どころ。",
+  url:BASE+"st-josephs-seminary-and-church"},
+ {n:7, cat:"square", jp:"聖オーガスティン広場", pt:"Largo de Santo Agostinho", zh:"崗頂前地", lat:22.19228, lng:113.53819,
+  desc:"聖オーガスティン教会、ドン・ペドロ5世劇場、聖ヨセフ修道院、ロバート・ホー・トン図書館などが立ち並ぶ広場。石畳（カルサーダス）がポルトガルの伝統的な街並みを映し出す。",
+  url:BASE+"st-augustines-square"},
+ {n:8, cat:"building", jp:"ドン・ペドロ5世劇場", pt:"Teatro Dom Pedro V", zh:"崗頂劇院", lat:22.19191, lng:113.53814, closed:true,
+  desc:"1860年、中国で最初の西洋式劇場として300席を設けて建設。現在も重要な公共の催事や祝賀会の会場として使われる、地元コミュニティの文化的名所。",
+  url:BASE+"dom-pedro-v-theatre"},
+ {n:9, cat:"building", jp:"ロバート・ホー・トン図書館", pt:"Biblioteca Sir Robert Ho Tung", zh:"何東圖書館", lat:22.19248, lng:113.53762,
+  desc:"1894年以前の建物。1918年に香港の実業家ロバート・ホー・トン卿が購入して別荘とし、1955年の死後、遺言に従いマカオ政府に寄贈されて図書館に改築された。",
+  url:BASE+"sir-robert-ho-tung-library"},
+ {n:10, cat:"church", jp:"聖オーガスティン教会", pt:"Igreja de Santo Agostinho", zh:"聖奧斯定教堂", lat:22.19233, lng:113.53840,
+  desc:"1591年、スペインの聖オーガスティン修道会によって創設。何千人もの信者が参加するマカオで最も有名なカトリック行事「パッソス聖体行列」を司る伝統をもつ。",
+  url:BASE+"st-augustines-church"},
+ {n:11, cat:"building", jp:"レアル・セナド・ビル（現「市政署」）", pt:"Edifício do Leal Senado", zh:"市政署大樓", lat:22.19328, lng:113.53944,
+  desc:"1784年築、マカオ初の市議会の庁舎で、現在もその機能を果たす。「レアル・セナド（忠誠なる評議会）」の名は、1654年のポルトガル王ドン・ジョン4世の言葉に由来する。",
+  url:BASE+"leal-senado-building"},
+ {n:12, cat:"square", jp:"セナド広場", pt:"Largo do Senado", zh:"議事亭前地", lat:22.19365, lng:113.53975,
+  desc:"何世紀にもわたってマカオの街の中心であり続けた、最も人気のある広場。パステルカラーの新古典様式建築と波模様の石畳が、ポルトガルの街並みを今に伝える。",
+  url:BASE+"senado-square"},
+ {n:13, cat:"temple", jp:"三街會館（関帝廟）", pt:"Templo de Sam Kai Vui Kun", zh:"三街會館（關帝古廟）", lat:22.19401, lng:113.53938,
+  desc:"かつて中国市場があった場所に建つ中国式寺院。西洋式のセナド広場に隣接する姿に二つの文化の共生が見え、中国商工会議所の前身として事業組合と長年密接に関わってきた。",
+  url:BASE+"sam-kai-vui-kun-kuan-tai-temple"},
+ {n:14, cat:"building", jp:"仁慈堂", pt:"Santa Casa da Misericórdia", zh:"仁慈堂大樓", lat:22.19370, lng:113.54020,
+  desc:"1569年に初代マカオ司教が設立した慈善施設。ポルトガルで最も著名かつ古い慈善団体をモデルに建立され、マカオ初の西洋式病院の創設に深く関与した。新古典様式にマヌエル様式の影響がうかがえる。",
+  url:BASE+"holy-house-of-mercy"},
+ {n:15, cat:"church", jp:"大堂（カテドラル）", pt:"Igreja da Sé", zh:"大堂（聖母誕辰主教座堂）", lat:22.19355, lng:113.54155,
+  desc:"1622年頃に建築されたカテドラル（主教座堂）。飾り柱と突出した2つの鐘楼が特徴のファサードに、上海製の漆喰を使った落ち着いた外観が印象的。",
+  url:BASE+"cathedral"},
+ {n:16, cat:"building", jp:"盧家屋敷", pt:"Casa de Lou Kau", zh:"盧家大屋", lat:22.19424, lng:113.54124,
+  desc:"1889年に建てられた、著名な中国人貿易商・盧華詔の邸宅。灰色レンガを使った二階建て・中庭つきの伝統的中国式住居で、当時の「クリスチャン・シティ」中心部に位置し、マカオの多様な社会構造を表す。",
+  url:BASE+"lou-kau-mansion"},
+ {n:17, cat:"church", jp:"聖ドミニコ教会", pt:"Igreja de São Domingos", zh:"玫瑰聖母堂（板樟堂）", lat:22.19484, lng:113.54038, closed:true,
+  desc:"1587年、メキシコ・アカプルコから来た3人のドミニコ会修道士が建てた教会で、ロザリオの聖母を祀る。1822年には中国初のポルトガル語新聞がここで発刊された。",
+  url:BASE+"st-dominics-church"},
+ {n:18, cat:"church", jp:"聖ポール天主堂跡", pt:"Ruínas de São Paulo", zh:"大三巴牌坊", lat:22.19755, lng:113.54070,
+  desc:"1602〜1640年に建設され、1835年の火災で崩壊した聖母教会の正面壁。聖ポール大学跡とともにマカオの「アクロポリス」と呼ばれ、石壁の彫刻には東西の意匠が織り込まれている。",
+  url:BASE+"ruins-of-st-pauls"},
+ {n:19, cat:"temple", jp:"ナーチャ廟", pt:"Templo de Na Tcha", zh:"哪吒廟", lat:22.19771, lng:113.54067,
+  desc:"神童ナーチャを祀るため1888年に建立された小さな伝統的中国寺院。主要なイエズス会事業跡の近くに立ち、西洋と中華の思想交流、マカオの多文化的アイデンティティを最もよく表す例の一つ。",
+  url:BASE+"na-tcha-temple"},
+ {n:20, cat:"fort", jp:"旧城壁", pt:"Troço das Antigas Muralhas", zh:"舊城牆遺址", lat:22.19766, lng:113.54055,
+  desc:"1569年には築かれていた防御壁の残存部分。土砂・ワラ・牡蠣の貝殻を混ぜて木枠に流し込み固める、地元の「シュウナンボー」という工法で幾層にも重ねて造られた。",
+  url:BASE+"section-of-the-old-city-walls"},
+ {n:21, cat:"fort", jp:"モンテの砦", pt:"Fortaleza do Monte", zh:"大炮台", lat:22.19710, lng:113.54240,
+  desc:"1617〜1626年、イエズス会の協力のもとに築かれたマカオ最強の防御施設。約1万㎡の台形の砦には大砲や兵器工場、2年間の攻撃に耐える貯蔵庫も備えられていた。",
+  url:BASE+"mount-fortress"},
+ {n:22, cat:"church", jp:"聖アントニオ教会", pt:"Igreja de Santo António", zh:"聖安多尼教堂（花王堂）", lat:22.19894, lng:113.53955,
+  desc:"マカオで最も古い教会の一つで、イエズス会修道士が最初の拠点を築いた場所。ポルトガル人コミュニティの結婚式が多かったことから「花王堂」とも呼ばれる。現在の姿は1930年の再建。",
+  url:BASE+"st-anthonys-church"},
+ {n:23, cat:"building", jp:"カーサ庭園", pt:"Casa Garden", zh:"東方基金會會址", lat:22.20010, lng:113.53984,
+  desc:"1770年に建てられたポルトガルの豪商マヌエル・ペレイラの邸宅。後に東インド会社が借り上げた時期もあり、現在は財団「東方基金会」の事務所となっている。",
+  url:BASE+"casa-garden"},
+ {n:24, cat:"fort", jp:"プロテスタント墓地", pt:"Cemitério Protestante", zh:"基督教墳場", lat:22.19993, lng:113.54009,
+  desc:"カーサ庭園に隣接し、マカオにおける最初のプロテスタント・コミュニティの包括的な記録を残す墓地。1821年建立のチャペルは今も「モリソン礼拝堂」として存在する。",
+  url:BASE+"protestant-cemetery"},
+ {n:25, cat:"fort", jp:"ギア要塞（ギア教会とギア灯台を含む）", pt:"Fortaleza da Guia", zh:"東望洋炮台（東望洋燈塔）", lat:22.19650, lng:113.54970,
+  desc:"1622〜1638年に築かれた要塞。ギア教会の精巧なフレスコ画は宗教的・神話的モチーフを東西双方のテーマで描き、マカオの文化的融合をよく表す。中国沿海部で最古の近代灯台（1865年）がそびえる。",
+  url:BASE+"guia-fortress-including-guia-chapel-and-lighthouse"},
+ {n:26, cat:"square", jp:"バラ広場", pt:"Largo do Pagode da Barra", zh:"媽閣廟前地", lat:22.18645, lng:113.53095,
+  desc:"媽閣廟の前に広がる、内港を望む広場。川のさざ波を思わせる黄土色と灰色のポルトガル式石畳が、水の動きと海沿いの街であることを象徴している。",
+  url:BASE+"barra-square"},
+ {n:27, cat:"square", jp:"大堂（カテドラル）広場", pt:"Largo da Sé", zh:"大堂前地", lat:22.19365, lng:113.54125,
+  desc:"大堂（カテドラル）と広場を取り囲む建造物は、宗教的または歴史的な観点で見ても価値のあるモニュメント。静かな石畳の坂が新馬路から続く。",
+  url:BASE+"cathedral-square"},
+ {n:28, cat:"square", jp:"聖ドミニコ広場", pt:"Largo de São Domingos", zh:"板樟堂前地", lat:22.19441, lng:113.54043,
+  desc:"聖ドミニコ教会の前に広がる広場。散策のひと休みスポットであると同時に、周囲には食品・衣料品・化粧品など様々な店が軒を連ね、常に賑わいを見せる。",
+  url:BASE+"st-dominics-square"},
+ {n:29, cat:"square", jp:"イエズス会記念広場", pt:"Largo da Companhia de Jesus", zh:"耶穌會紀念廣場", lat:22.19720, lng:113.54084,
+  desc:"聖ポール天主堂跡の前に広がる広場。周囲を囲む建造物のうち19世紀の新古典様式で建てられた2棟以外は、1920〜1930年にかけて建造された。",
+  url:BASE+"company-of-jesus-square"},
+ {n:30, cat:"square", jp:"カモンエス広場", pt:"Praça de Luís de Camões", zh:"白鴿巢前地", lat:22.19935, lng:113.53940,
+  desc:"カモンエス公園、聖アントニオ教会、プロテスタント墓地の近くにある緑にあふれた広場。ベンチもあり、地元市民に人気の憩いの場となっている。",
+  url:BASE+"camoes-square"}
+];
+
+/* ---------- build list ---------- */
+const listEl = document.getElementById('list');
+SITES.forEach(s => {
+  const c = CATS[s.cat];
+  const art = document.createElement('article');
+  art.className = 'card';
+  art.style.setProperty('--c', c.color);
+  art.dataset.id = s.n;
+  art.dataset.cat = s.cat;
+  art.tabIndex = 0;
+  art.innerHTML = `
+    <div class="card-num${s.cat==='square'?' hollow':''}">${s.n}</div>
+    <div class="card-body">
+      <h3>${s.jp}<span class="pt">${s.pt}</span></h3>
+      <div class="meta">
+        <span class="tag" style="--c:${c.color}">${c.label}</span>
+        <span class="zh">${s.zh}</span>
+        ${s.closed ? '<span class="closed">一時休業</span>' : ''}
+      </div>
+      <p>${s.desc}</p>
+      <a class="more" href="${s.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">観光局の詳細ページ ↗</a>
+    </div>`;
+  art.addEventListener('click', () => focusSite(s.n, {fromList:true}));
+  art.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault(); focusSite(s.n,{fromList:true});} });
+  listEl.appendChild(art);
+});
+
+/* ---------- filters ---------- */
+const filtersEl = document.getElementById('filters');
+let currentFilter = 'all';
+function chipCount(cat){ return cat==='all' ? SITES.length : SITES.filter(s=>s.cat===cat).length; }
+const FILTERS = [['all','すべて',null], ...Object.entries(CATS).map(([k,v]) => [k, v.label, v.color])];
+FILTERS.forEach(([key,label,color]) => {
+  const b = document.createElement('button');
+  b.className = 'chip-btn' + (key==='all'?' on':'');
+  b.type = 'button';
+  b.innerHTML = (color?`<span class="dot" style="--c:${color}"></span>`:'') + `${label}<span class="cnt">${chipCount(key)}</span>`;
+  b.addEventListener('click', () => {
+    currentFilter = key;
+    [...filtersEl.children].forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    applyFilter();
+  });
+  filtersEl.appendChild(b);
+});
+
+/* ---------- map ---------- */
+const bounds = L.latLngBounds(SITES.map(s => [s.lat, s.lng]));
+let map = null, markers = {};
+
+function initMap(){
+  if (typeof L === 'undefined') {
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('mapFallback').style.display = 'grid';
+    return;
+  }
+  map = L.map('map', {scrollWheelZoom:true, zoomControl:true, attributionControl:true});
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution:'Tiles © <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a>, Source: Esri, HERE, Garmin, USGS — © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    maxZoom:19
+  }).addTo(map);
+
+  SITES.forEach(s => {
+    const c = CATS[s.cat];
+    const solid = s.cat !== 'square';
+    const icon = L.divIcon({
+      className:'', iconSize:[30,30], iconAnchor:[15,15], popupAnchor:[0,-16],
+      html:`<span class="mk-badge${solid?'':' hollow'}" data-id="${s.n}" style="--c:${c.color}">${s.n}</span>`
+    });
+    const mk = L.marker([s.lat, s.lng], {icon, title:`${s.n}. ${s.jp}`});
+    mk.bindPopup(popupHTML(s), {maxWidth:280});
+    mk.bindTooltip(`${s.n}. ${s.jp}`, {direction:'top', offset:[0,-14], opacity:.95});
+    mk.on('click', () => { activateMarker(s.n); highlightCard(s.n); });
+    markers[s.n] = mk;
+  });
+
+  // legend
+  const Legend = L.Control.extend({
+    options:{position:'bottomleft'},
+    onAdd(){
+      const div = L.DomUtil.create('div','legend');
+      div.innerHTML = Object.entries(CATS).map(([k,v]) =>
+        `<div class="row"><span class="d${k==='square'?' hollow':''}" style="--c:${v.color}"></span>${v.label}</div>`
+      ).join('') + `<div class="note">実マーク＝建造物 ／ 枠マーク＝広場</div>`;
+      return div;
+    }
+  });
+  map.addControl(new Legend());
+  applyFilter();
+}
+
+function popupHTML(s){
+  const c = CATS[s.cat];
+  return `<div class="pp" style="--c:${c.color}">
+    <div class="pp-head">
+      <span class="pp-num${s.cat==='square'?' hollow':''}">${s.n}</span>
+      <h5>${s.jp}<span class="pt">${s.pt}</span></h5>
+    </div>
+    <span class="cat">${c.label}</span><span style="font-size:11px;color:var(--ink-sub)">　${s.zh}${s.closed?'　<b style="color:var(--temple)">一時休業</b>':''}</span>
+    <p>${s.desc}</p>
+    <a href="${s.url}" target="_blank" rel="noopener">観光局の詳細ページ ↗</a>
+  </div>`;
+}
+
+function applyFilter(){
+  const vis = [];
+  SITES.forEach(s => {
+    const show = currentFilter==='all' || s.cat===currentFilter;
+    const card = document.querySelector(`.card[data-id="${s.n}"]`);
+    if (card) card.classList.toggle('hidden', !show);
+    if (!map) return;
+    if (show && !map.hasLayer(markers[s.n])) markers[s.n].addTo(map);
+    if (!show && map.hasLayer(markers[s.n])) map.removeLayer(markers[s.n]);
+    if (show) vis.push([s.lat, s.lng]);
+  });
+  if (map && vis.length) map.fitBounds(L.latLngBounds(vis), {padding:[28,28]});
+}
+
+function highlightCard(n){
+  document.querySelectorAll('.card.active').forEach(el=>el.classList.remove('active'));
+  const card = document.querySelector(`.card[data-id="${n}"]`);
+  if (card) {
+    card.classList.add('active');
+    card.scrollIntoView({block:'nearest', behavior:'smooth'});
+  }
+}
+
+function focusSite(n, {fromList}={}){
+  const s = SITES.find(x=>x.n===n);
+  if (!s) return;
+  highlightCard(n);
+  if (map && markers[n]) {
+    activateMarker(n);
+    markers[n].addTo(map);
+    map.flyTo([s.lat, s.lng], Math.max(map.getZoom(), 16), {duration:.7});
+    markers[n].openPopup();
+    if (window.innerWidth <= 960 && !fromList) return;
+  }
+}
+
+function activateMarker(n){
+  Object.values(markers).forEach(m => {
+    m.setZIndexOffset(0);
+    const b = m.getElement() && m.getElement().querySelector('.mk-badge');
+    if (b) b.classList.remove('active');
+  });
+  const m = markers[n];
+  if (m) {
+    m.setZIndexOffset(1000);
+    const b = m.getElement() && m.getElement().querySelector('.mk-badge');
+    if (b) b.classList.add('active');
+  }
+}
+
+initMap();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
